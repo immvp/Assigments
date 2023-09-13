@@ -12,6 +12,7 @@ typedef enum FileTypes {
 
 int PrintSuccess(char str[], FileTypes fileTypes) {
     char fileType[100];
+
     switch (fileTypes)
     {
     case empty:
@@ -26,6 +27,17 @@ int PrintSuccess(char str[], FileTypes fileTypes) {
     return 1;
 }
 
+enum FileTypes CheckType(FILE *file) {
+    long size;
+
+    fseek(file, 0, SEEK_END);
+    size = ftell(file);
+    rewind(file);
+    printf("%ld", size);
+
+    return empty;
+}
+
 int main(int argc, char* argv[]) {
     FILE* file;
 
@@ -37,7 +49,8 @@ int main(int argc, char* argv[]) {
 
     // Determine if the file exists
     if ((file = fopen(argv[1], "r")) != NULL) {
-            
+        
+        CheckType(file);
         PrintSuccess(argv[1], empty);
         exit(EXIT_SUCCESS);
         // Determine if it's empty
