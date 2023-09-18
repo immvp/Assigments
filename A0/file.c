@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 typedef enum FileTypes {
     empty,
@@ -9,6 +10,12 @@ typedef enum FileTypes {
     UTF,
     data
 } FileTypes;
+
+// Assumes: errnum is a valid error number
+int print_error(char *path, int errnum) {
+    return fprintf(stdout, "%s: cannot determine (%s)\n",
+        path, strerror(errnum));
+}
 
 int PrintSuccess(char str[], FileTypes fileTypes) {
     char fileType[100];
@@ -33,10 +40,15 @@ enum FileTypes CheckType(FILE *file) {
     fseek(file, 0, SEEK_END);
     size = ftell(file);
     rewind(file);
-    printf("%ld", size);
+    
+    if (size == 0) {
+        return empty;
+    }
 
     return empty;
 }
+
+
 
 int main(int argc, char* argv[]) {
     FILE* file;
@@ -59,5 +71,8 @@ int main(int argc, char* argv[]) {
         // We close file when done using it
         fclose(file);
         exit(EXIT_SUCCESS);
+    }
+    else {
+        print_error(argv[1], errno);
     }
 }
