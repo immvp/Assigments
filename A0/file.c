@@ -35,11 +35,17 @@ int PrintSuccess(char str[], FileTypes fileTypes) {
 }
 
 enum FileTypes CheckType(FILE *file) {
-    long size;
+    int size;
+    char* buffer;
 
     fseek(file, 0, SEEK_END);
     size = ftell(file);
     rewind(file);
+
+    buffer = (char*) malloc(size * sizeof(char)); // Enough memory for the file
+    fread(buffer, size, 1, file); // Read in the entire file
+    
+    printf("%hhu\n", buffer[0]);
     
     if (size == 0) {
         return empty;
@@ -60,7 +66,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Determine if the file exists
-    if ((file = fopen(argv[1], "r")) != NULL) {
+    if ((file = fopen(argv[1], "rb")) != NULL) {
         
         CheckType(file);
         PrintSuccess(argv[1], empty);
