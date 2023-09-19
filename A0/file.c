@@ -25,6 +25,12 @@ int PrintSuccess(char str[], FileTypes fileTypes) {
     case empty:
         strcpy(fileType, "empty");
         break;
+    case ASCII:
+        strcpy(fileType, "ascii");
+        break;
+    case UTF:
+        strcpy(fileType, "utf");
+        break;
     default:
         strcpy(fileType, "data");
         break;
@@ -36,22 +42,76 @@ int PrintSuccess(char str[], FileTypes fileTypes) {
 
 enum FileTypes CheckType(FILE *file) {
     int size;
-    char* buffer;
+    unsigned char* buffer;
+
+    // Each index corresponds to the byte number for utf-8
+    int utfCounter[3];
+
+    for (size_t i = 0; i < 3; i++)
+    {
+        utfCounter[i] = 0;
+    }
+    
+
+    // Counter for searching for bytes
+    int byteMissing = 0;
+    // Byte Number we are searching for
+    int numByte = 0;
 
     fseek(file, 0, SEEK_END);
     size = ftell(file);
-    rewind(file);
-
-    buffer = (char*) malloc(size * sizeof(char)); // Enough memory for the file
-    fread(buffer, size, 1, file); // Read in the entire file
-    
-    printf("%hhu\n", buffer[0]);
-    
     if (size == 0) {
         return empty;
     }
+    rewind(file);
 
-    return empty;
+    buffer = (unsigned char*) malloc(size * sizeof(unsigned char)); // Enough memory for the file
+    fread(buffer, size, 1, file); // Read in the entire file
+    
+    // Sliding Window Pattern
+    // Check om de første 3 bits er 110
+    for (int i = 0; i < size; i++) {
+        // If no continous byte before this one, and its between 10000000 and 10111111
+        if (byteMissing == 0 && (0x80 <= buffer[i] && buffer[i] <= 0xBF)) {
+            return ISO;
+        }
+        // 110xxxxx
+        if (0xC0 <= buffer[i] && buffer[i] <= 0xDF) {
+            numByte = 0;
+            byteMissing = 1;
+        }
+        // 1110xxxx
+        if (0xE0 <= buffer[i] && buffer[i] <= 0xEF) {
+            numByte = 1;
+            byteMissing = 2;
+
+        }
+        // 11110xxx
+        if (0xF0 <= buffer[i] && buffer[i] <= 0xF7) {
+            numByte = 2;
+            byteMissing = 3;
+        }
+        // 10xxxxxx
+        if (byteMissing != 0 && (0x80 <= buffer[i] && buffer[i] <= 0xBF)) {
+            byteMissing--;
+            if (byteMissing == 0) {
+                utfCounter[numByte]++;
+                numByte = 0;
+            }
+        }
+    } 
+
+    // Hacky solution for "end of file"-case. 
+    // If the last byte of our file is a continous byte then it has to be ISO.
+    if (byteMissing != 0) {
+        return ISO;
+    }
+
+    if (utfCounter[1] > 0 || utfCounter[2] > 0) {
+        return UTF;
+    }
+
+    return data;
 }
 
 
