@@ -28,8 +28,12 @@ printf "\x6f\x6f" > test_files/ascii3.input
 printf "abc" > test_files/ascii4.input
 # ȁ - uses unused bytes, between 128-159 decimal values
 printf "\x20\x20\xc4\x9f\x20\x20" > test_files/utf_1.input
-#Contains ANY utf pattern. We assume its utf.
+#Contains byte 2 utf pattern. We assume its utf.
 printf "\x20\x20\xc6\xa3\x20\x20" > test_files/utf_2.input
+#Contains byte 3 utf pattern. We assume its utf.
+printf "\x20\x20\xe6\xa3\xa3\x20\x20" > test_files/utf_3.input
+#Contains byte 4 utf pattern. We assume its utf.
+printf "\x20\x20\xf0\xa3\xa3\xa3\x20\x20" > test_files/utf_4.input
 
 
 
