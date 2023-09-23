@@ -20,8 +20,8 @@ printf "" > test_files/empty.input
 # uses 2 header bytes after each other
 printf "\xf0\xf0" > test_files/iso_1.input
 # could be utf, could be iso (same pattern) - we go with utf
-printf "\xd7\xa2" > test_files/iso_2.input
-printf "\x20\x20\xd7\xa2\x20\x20" > test_files/iso_3.input
+printf "\xd7\xa2" > test_files/iso_or_utf_1.input
+printf "\x20\x20\xd7\xa2\x20\x20" > test_files/iso_or_utf_2.input
 # double continous, must be ascii
 printf "\x6f\x6f" > test_files/ascii3.input
 #only contains ascii .. must be ascii

@@ -46,13 +46,9 @@ int PrintSuccess(char str[], FileTypes fileTypes) {
 enum FileTypes CheckType(FILE *file) {
     int size;
     unsigned char* buffer;
-
-    unsigned int* utfCounter = (unsigned int*) calloc(3, sizeof(unsigned int));
     
     // Counter for searching for bytes
     int byteMissing = 0;
-    // Byte Number we are searching for
-    int numByte = 0;
 
     fseek(file, 0, SEEK_END);
     size = ftell(file);
@@ -65,7 +61,6 @@ enum FileTypes CheckType(FILE *file) {
     fread(buffer, size, 1, file); // Read in the entire file
     
     // Sliding Window Pattern
-    // Check om de første 3 bits er 110
     for (int i = 0; i < size; i++) {
 
         // If NULL then data
@@ -89,34 +84,32 @@ enum FileTypes CheckType(FILE *file) {
             if (byteMissing != 0) {
                 return ISO;
             }
-            numByte = 0;
             byteMissing = 1;
         }
+
         // 1110xxxx
         if (0xE0 <= buffer[i] && buffer[i] <= 0xEF) {
             // If we are searching, then it has to be ISO
             if (byteMissing != 0) {
                 return ISO;
-            }            
-            numByte = 1;
+            }
             byteMissing = 2;
-
         }
+
         // 11110xxx
         if (0xF0 <= buffer[i] && buffer[i] <= 0xF7) {
             // If we are searching, then it has to be ISO
             if (byteMissing != 0) {
                 return ISO;
-            }            
-            numByte = 2;
+            }
             byteMissing = 3;
         }
+
         // 10xxxxxx
         if (byteMissing != 0 && (0xA0 <= buffer[i] && buffer[i] <= 0xBF)) {
             byteMissing--;
             if (byteMissing == 0) {
-                utfCounter[numByte]++;
-                numByte = 0;
+                return UTF;
             }
         }
     } 
@@ -125,10 +118,6 @@ enum FileTypes CheckType(FILE *file) {
     // If the last byte of our file is a header byte then it has to be ISO.
     if (byteMissing != 0) {
         return ISO;
-    }
-
-    if (utfCounter[0] > 0 || utfCounter[1] > 0 || utfCounter[2] > 0) {
-        return UTF;
     }
 
     return ASCII;
