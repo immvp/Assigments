@@ -14,18 +14,19 @@ struct binsort_data {
   int n;
 };
 
-int comp(const struct record p, const struct record q) {
-  return p.osm_id - q.osm_id;
+int comp(const void* p, const void* q) {
+  return ((struct record*)p)->osm_id - ((struct record*)q)->osm_id;
 }
 
 struct binsort_data* mk_binsort(struct record* rs, int n) {
   qsort(rs, n, sizeof(struct record), comp);
-
+  
   struct binsort_data* binsortData = malloc(sizeof(struct binsort_data));
-
+  
   binsortData->rs = rs;
   binsortData->n = n;
-  
+
+
   return binsortData;
 }
 
@@ -34,13 +35,23 @@ void free_binsort(struct binsort_data* data) {
 }
 
 const struct record* lookup_binsort(struct binsort_data *data, int64_t needle) {
-  for (int i = 0; i < data->n; i++)
-  {
-    if (data->rs[i].osm_id == needle) {
-      return &data->rs[i];
-    }
+  int low = 0;
+  int high = data->n-1;
+
+  while (needle != data->rs[low+(high-low)/2].osm_id) {
+    if (high < low) {
+      return NULL;
   }
-  return NULL;
+
+  if (data->rs[low+(high-low)/2].osm_id > needle) {
+    high = low + (high - low) / 2 - 1;
+  }
+  else if (data->rs[low+(high-low)/2].osm_id < needle) {
+    low = low + (high - low) / 2 + 1;
+  }
+ }
+
+ return &data->rs[low+(high-low)/2];
 }
 
 int main(int argc, char** argv) {
