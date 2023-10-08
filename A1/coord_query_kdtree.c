@@ -16,7 +16,7 @@ struct naive_data {
 };
 
 struct node {
-  const struct record* point;
+  struct record* point;
   int axis;
   struct node* left;
   struct node* right;
@@ -67,18 +67,22 @@ void free_kdtree(struct node* node) {
 }
 
 double distance(struct record* rs, double lon, double lat) {
-  return sqrt(pow((rs->lon - lon), 2) + pow((rs->lat - lat), 2));
+  if (rs)
+    return sqrt(pow((rs->lon - lon), 2) + pow((rs->lat - lat), 2));
+  else
+    return 0;
 }
 
-const struct record* kdtree_walk(struct node* node, double lon, double lat, struct node* closest) {
+void kdtree_walk(struct node* node, double lon, double lat, struct record* closest) {
   if (node == NULL) {
-    return NULL;
+    return;
   } else if (distance(node->point, lon, lat) < distance(closest, lon, lat)) {
-    closest = node;
+    *closest = *node->point;
   }
 
   if (node->point->lat == lat && node->point->lon == lon) {
-    return node;
+    *closest = *node->point;
+    return;
   }
 
   double diff = 0;
@@ -95,17 +99,15 @@ const struct record* kdtree_walk(struct node* node, double lon, double lat, stru
   if (diff >= 0 || radius > fabs(diff)) {
     kdtree_walk(node->left, lon, lat, closest);
   }
-
-  if (diff <= 0 || radius > fabs(diff)) {
+  else if (diff <= 0 || radius > fabs(diff)) {
     kdtree_walk(node->right, lon, lat, closest);
   }
-
-  return closest->point;
 }
 
 const struct record* lookup_kdtree(struct node* node, double lon, double lat) {
-  struct node* closest = malloc(sizeof(struct node));
-  return kdtree_walk(node, lon, lat, closest);
+  struct record* rs = malloc(sizeof(struct record));
+  kdtree_walk(node, lon, lat, rs);
+  return rs;
 }
 
 int main(int argc, char** argv) {
