@@ -41,6 +41,6 @@ planet-latest-geonames.tsv:
 
 ../src.zip:
 	make clean
-	cd .. && zip src.zip -r src
+	cd .. && zip src.zip -r A1
 
 .SECONDARY:
