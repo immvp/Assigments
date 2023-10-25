@@ -15,11 +15,16 @@ int job_queue_init(struct job_queue *job_queue, int capacity) {
 }
 
 int job_queue_destroy(struct job_queue *job_queue) {
-  assert(0);
+  pthread_mutex_lock(&job_queue->mutex);
+  if (job_queue->filled != 0) {
+    pthread_cond_wait(&job_queue->condition, &job_queue->mutex);
+  }
+  
+  pthread_mutex_unlock(&job_queue->mutex);
+  return 0;
 }
 
 int job_queue_push(struct job_queue *job_queue, void *data) {
-  // TODO: Edge-case where the array is full. Should wait till there's space.
   if (!job_queue) {
     return 1;
   }
@@ -31,9 +36,21 @@ int job_queue_push(struct job_queue *job_queue, void *data) {
   job_queue->array[job_queue->head] = data;
   job_queue->head = (job_queue->head + 1) % job_queue->size;
   job_queue->filled++;
+  pthread_mutex_unlock(&job_queue->mutex);
   return 0;
 }
 
 int job_queue_pop(struct job_queue *job_queue, void **data) {
-  job_queue->array[job_queue->tail % job_queue->size-1] = data;
+  if (!job_queue) {
+    return 1;
+  }
+  //pthread_mutex_lock(&job_queue->mutex); ## måske man skal, vi ved det sgu ik
+  if (job_queue->filled == 0) {
+    pthread_cond_wait(&job_queue->condition, &job_queue->mutex);
+  }
+  data = job_queue->array[job_queue->tail % job_queue->size-1];
+  job_queue->array[job_queue->tail % job_queue->size-1] = NULL;
+  job_queue->tail++;
+  //pthread_mutex_unlock(&job_queue->mutex);
+  return 0;
 }

@@ -11,6 +11,7 @@ struct job_queue {
   int filled;
   pthread_cond_t condition;
   pthread_mutex_t mutex;
+  
 };
 
 // Initialise a job queue with the given capacity.  The queue starts out
