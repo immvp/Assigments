@@ -9,8 +9,10 @@ struct job_queue {
   int tail;
   void** array;
   int filled;
-  pthread_cond_t condition;
-  pthread_mutex_t mutex;
+  pthread_cond_t notfull;
+  pthread_cond_t notempty;
+  pthread_cond_t empty;
+  pthread_mutex_t m;
   
 };
 
