@@ -19,6 +19,59 @@
 
 #include "job_queue.h"
 
+struct arg_struct {
+  char* needle;
+  struct job_queue* jq;
+};
+
+int fauxgrep_file(char const *needle, char const *path) {
+  FILE *f = fopen(path, "r");
+
+  if (f == NULL) {
+    warn("failed to open %s", path);
+    return -1;
+  }
+
+  char *line = NULL;
+  size_t linelen = 0;
+  int lineno = 1;
+
+  while (getline(&line, &linelen, f) != -1) {
+    if (strstr(line, needle) != NULL) {
+      printf("%s:%d: %s", path, lineno, line);
+    }
+
+    lineno++;
+  }
+
+  free(line);
+  fclose(f);
+
+  return 0;
+}
+
+// Each thread will run this function.  The thread argument is a
+// pointer to a job queue.
+void* worker(void *arg) {
+  struct arg_struct *args = args;
+  struct job_queue *jq = args->jq;
+
+  while (1) {
+    char *line;
+    if (job_queue_pop(jq, (void**)&line) == 0) {
+      fauxgrep_file(args->needle, line);
+      free(line);
+    } else {
+      // If job_queue_pop() returned non-zero, that means the queue is
+      // being killed (or some other error occured).  In any case,
+      // that means it's time for this thread to die.
+      break;
+    }
+  }
+
+  return NULL;
+}
+
 int main(int argc, char * const *argv) {
   if (argc < 2) {
     err(1, "usage: [-n INT] STRING paths...");
@@ -51,7 +104,21 @@ int main(int argc, char * const *argv) {
     paths = &argv[2];
   }
 
-  assert(0); // Initialise the job queue and some worker threads here.
+  struct job_queue jq;
+  job_queue_init(&jq, 64);
+
+  struct arg_struct *as = malloc(sizeof(struct arg_struct));
+  as->jq = &jq;
+  as->needle = needle;
+
+
+  pthread_t *threads = calloc(num_threads, sizeof(pthread_t));
+  for (int i = 0; i < num_threads; i++) {
+    if (pthread_create(&threads[i], NULL, &worker, (void*)as ) != 0) {
+      err(1, "pthread_create() failed");
+    }
+  }
+  
 
   // FTS_LOGICAL = follow symbolic links
   // FTS_NOCHDIR = do not change the working directory of the process
@@ -72,7 +139,7 @@ int main(int argc, char * const *argv) {
     case FTS_D:
       break;
     case FTS_F:
-      assert(0); // Process the file p->fts_path, somehow.
+      job_queue_push(&jq, strdup(p->fts_path)); // Push file name to job queue
       break;
     default:
       break;

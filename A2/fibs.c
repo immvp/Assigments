@@ -108,7 +108,6 @@ int main(int argc, char * const *argv) {
     job_queue_push(&jq, (void*)strdup(line));
   }
   free(line);
-
   // Destroy the queue.
   job_queue_destroy(&jq);
 
