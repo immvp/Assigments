@@ -27,7 +27,6 @@ static void clear_line() {
 // output will be overwritten.
 static void print_histogram(int histogram[8]) {
   int64_t bits_seen = 0;
-
   for (int i = 0; i < 8; i++) {
     bits_seen += histogram[i];
   }

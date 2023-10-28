@@ -25,6 +25,7 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int global_histogram[8] = { 0 };
 
+// læser en fil
 int fhistogram(char const *path) {
   FILE *f = fopen(path, "r");
 
@@ -42,7 +43,7 @@ int fhistogram(char const *path) {
   while (fread(&c, sizeof(c), 1, f) == 1) {
     i++;
     update_histogram(local_histogram, c);
-    if ((i % 100000) == 0) {
+    if ((i % 2000000) == 0) {
       merge_histogram(local_histogram, global_histogram);
       print_histogram(global_histogram);
     }
@@ -55,8 +56,8 @@ int fhistogram(char const *path) {
 
   return 0;
 }
-
-// Each thread will run this function.  The thread argument is a
+ 
+// Each thread will run this function. The thread argument is a
 // pointer to a job queue.
 void* worker(void *arg) {
   struct job_queue *jq = arg;
