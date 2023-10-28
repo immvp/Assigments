@@ -53,9 +53,9 @@ int fauxgrep_file(char const *needle, char const *path) {
 // Each thread will run this function.  The thread argument is a
 // pointer to a job queue.
 void* worker(void *arg) {
-  struct arg_struct *args = args;
+  struct arg_struct *args = arg;
   struct job_queue *jq = args->jq;
-
+ 
   while (1) {
     char *line;
     if (job_queue_pop(jq, (void**)&line) == 0) {
@@ -109,7 +109,7 @@ int main(int argc, char * const *argv) {
 
   struct arg_struct *as = malloc(sizeof(struct arg_struct));
   as->jq = &jq;
-  as->needle = needle;
+  as->needle = (char *)needle;
 
 
   pthread_t *threads = calloc(num_threads, sizeof(pthread_t));
