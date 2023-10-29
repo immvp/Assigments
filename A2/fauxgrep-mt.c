@@ -119,7 +119,6 @@ int main(int argc, char * const *argv) {
     }
   }
 
-  free(as);
   
 
   // FTS_LOGICAL = follow symbolic links
@@ -160,6 +159,7 @@ int main(int argc, char * const *argv) {
       err(1, "pthread_join() failed");
     }
   }
+  free(as);
   free(threads);
 
   return 0;
