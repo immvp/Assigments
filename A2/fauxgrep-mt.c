@@ -118,6 +118,8 @@ int main(int argc, char * const *argv) {
       err(1, "pthread_create() failed");
     }
   }
+
+  free(as);
   
 
   // FTS_LOGICAL = follow symbolic links
