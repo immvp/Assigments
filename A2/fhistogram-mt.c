@@ -43,9 +43,11 @@ int fhistogram(char const *path) {
   while (fread(&c, sizeof(c), 1, f) == 1) {
     i++;
     update_histogram(local_histogram, c);
-    if ((i % 2000000) == 0) {
+    if ((i % 200000) == 0) {
       merge_histogram(local_histogram, global_histogram);
+      pthread_mutex_lock(&stdout_mutex);
       print_histogram(global_histogram);
+      pthread_mutex_unlock(&stdout_mutex);
     }
   }
 
