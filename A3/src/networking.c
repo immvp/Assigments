@@ -19,6 +19,8 @@ char server_port[PORT_LEN];
 char my_ip[IP_LEN];
 char my_port[PORT_LEN];
 
+int clientfd;
+
 int c;
 
 /*
@@ -78,8 +80,10 @@ void get_file_sha(const char* sourcefile, hashdata_t hash, int size)
  */
 void get_signature(char* password, char* salt, hashdata_t* hash)
 {
-    // Your code here. This function has been added as a guide, but feel free 
-    // to add more, or work in other parts of the code
+    char result[PASSWORD_LEN + SALT_LEN];
+    strcat(result, password);
+    strcat(result, salt);
+    get_data_sha(result, *hash, PASSWORD_LEN + SALT_LEN, SHA256_HASH_SIZE);
 }
 
 /*
@@ -88,8 +92,12 @@ void get_signature(char* password, char* salt, hashdata_t* hash)
  */
 void register_user(char* username, char* password, char* salt)
 {
-    // Your code here. This function has been added as a guide, but feel free 
-    // to add more, or work in other parts of the code
+    char result[USERNAME_LEN+SHA256_HASH_SIZE];
+    hashdata_t hash;
+    get_signature(password, salt, *hash);
+    strcat(result, username);
+    strcat(result, hash);
+    write(clientfd, hash, sizeof(char)*(USERNAME_LEN+SHA256_HASH_SIZE));
 }
 
 /*
@@ -105,13 +113,19 @@ void get_file(char* username, char* password, char* salt, char* to_get)
 
 int main(int argc, char **argv)
 {
+    compsys_helper_state_t rp;
+    compsys_helper_readinitb(&rp, clientfd);
+
+    //TODO: use the helper_state above to use the compsys_helper functions, 
+    //to ultimately randomly generate a salt and save it in a local .txt file
+
     // Users should call this script with a single argument describing what 
     // config to use
     if (argc != 2)
     {
         fprintf(stderr, "Usage: %s <config file>\n", argv[0]);
         exit(EXIT_FAILURE);
-    } 
+    }
 
     // Read in configuration options. Should include a client_directory, 
     // client_ip, client_port, server_ip, and server_port
@@ -190,26 +204,32 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Using salt: %s\n", user_salt);
 
-    // The following function calls have been added as a structure to a 
-    // potential solution demonstrating the core functionality. Feel free to 
-    // add, remove or otherwise edit. Note that if you are creating a system 
-    // for user-interaction the following lines will almost certainly need to 
-    // be removed/altered.
+    // creating connection
+    if (clientfd = compsys_helper_open_clientfd(server_ip, server_port) >= 0) {
+        // The following function calls have been added as a structure to a 
+        // potential solution demonstrating the core functionality. Feel free to 
+        // add, remove or otherwise edit. Note that if you are creating a system 
+        // for user-interaction the following lines will almost certainly need to 
+        // be removed/altered.
 
-    // Register the given user. As handed out, this line will run every time 
-    // this client starts, and so should be removed if user interaction is 
-    // added
-    register_user(username, password, user_salt);
+        // Register the given user. As handed out, this line will run every time 
+        // this client starts, and so should be removed if user interaction is 
+        // added
+        register_user(username, password, user_salt);
 
-    // Retrieve the smaller file, that doesn't not require support for blocks. 
-    // As handed out, this line will run every time this client starts, and so 
-    // should be removed if user interaction is added
-    get_file(username, password, user_salt, "tiny.txt");
+        // Retrieve the smaller file, that doesn't not require support for blocks. 
+        // As handed out, this line will run every time this client starts, and so 
+        // should be removed if user interaction is added
+        get_file(username, password, user_salt, "tiny.txt");
 
-    // Retrieve the larger file, that requires support for blocked messages. As
-    // handed out, this line will run every time this client starts, and so 
-    // should be removed if user interaction is added
-    get_file(username, password, user_salt, "hamlet.txt");
+        // Retrieve the larger file, that requires support for blocked messages. As
+        // handed out, this line will run every time this client starts, and so 
+        // should be removed if user interaction is added
+        get_file(username, password, user_salt, "hamlet.txt");
+    }
+    else {
+        fprintf(stdout, "didnt work");
+    }
 
     exit(EXIT_SUCCESS);
 }
