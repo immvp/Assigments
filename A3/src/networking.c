@@ -94,10 +94,10 @@ void register_user(char* username, char* password, char* salt)
 {
     char result[USERNAME_LEN+SHA256_HASH_SIZE];
     hashdata_t hash;
-    get_signature(password, salt, *hash);
-    strcat(result, username);
-    strcat(result, hash);
-    write(clientfd, hash, sizeof(char)*(USERNAME_LEN+SHA256_HASH_SIZE));
+    get_signature(password, salt, &hash);
+    strcat(&result[0], username);
+    strcat(result, (char *)hash);
+    write(clientfd, result, sizeof(char)*(USERNAME_LEN+SHA256_HASH_SIZE));
 }
 
 /*
@@ -115,9 +115,7 @@ int main(int argc, char **argv)
 {
     compsys_helper_state_t rp;
     compsys_helper_readinitb(&rp, clientfd);
-
-    //TODO: use the helper_state above to use the compsys_helper functions, 
-    //to ultimately randomly generate a salt and save it in a local .txt file
+    FILE *fp_us;
 
     // Users should call this script with a single argument describing what 
     // config to use
@@ -203,9 +201,24 @@ int main(int argc, char **argv)
     //    SALT_LEN+1);
 
     fprintf(stdout, "Using salt: %s\n", user_salt);
+    char usernameAndSalt[USERNAME_LEN + SALT_LEN + 4];
+    strcat(usernameAndSalt,username);
+    strcat(usernameAndSalt," ");
+    strcat(usernameAndSalt,user_salt);
+    strcat(usernameAndSalt,"\n");
+    printf("%s !!!",usernameAndSalt);
+    // Creating/opening a txt file and writing the username and salt to it
+    if ((fp_us = fopen("userInformations.txt","a+")) == NULL) {
+        fp_us = fopen("userInformations.txt", "w+");
+    }
+    for (size_t i = 0; i < strlen(usernameAndSalt); i++) {
+        /* write to file using fputc() function */
+        fputc(usernameAndSalt[i], fp_us);
+    }
+    fclose(fp_us);
 
     // creating connection
-    if (clientfd = compsys_helper_open_clientfd(server_ip, server_port) >= 0) {
+    if ((clientfd = compsys_helper_open_clientfd(server_ip, server_port)) >= 0) {
         // The following function calls have been added as a structure to a 
         // potential solution demonstrating the core functionality. Feel free to 
         // add, remove or otherwise edit. Note that if you are creating a system 
