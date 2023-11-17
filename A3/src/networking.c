@@ -80,10 +80,11 @@ void get_file_sha(const char* sourcefile, hashdata_t hash, int size)
  */
 void get_signature(char* password, char* salt, hashdata_t* hash)
 {
-    char result[PASSWORD_LEN + SALT_LEN];
-    strcat(result, password);
+    char result[PASSWORD_LEN + SALT_LEN + 1];
+    strcpy(result, password);
     strcat(result, salt);
     get_data_sha(result, *hash, PASSWORD_LEN + SALT_LEN, SHA256_HASH_SIZE);
+    
 }
 
 /*
@@ -92,11 +93,11 @@ void get_signature(char* password, char* salt, hashdata_t* hash)
  */
 void register_user(char* username, char* password, char* salt)
 {
-    char result[USERNAME_LEN+SHA256_HASH_SIZE];
+    char result[USERNAME_LEN+SHA256_HASH_SIZE + 1];
     hashdata_t hash;
     get_signature(password, salt, &hash);
-    strcat(&result[0], username);
-    strcat(result, (char *)hash);
+    strcpy(result, username);
+    strncat(result, hash, SHA256_HASH_SIZE);
     write(clientfd, result, sizeof(char)*(USERNAME_LEN+SHA256_HASH_SIZE));
 }
 
