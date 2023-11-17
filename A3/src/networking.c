@@ -84,7 +84,6 @@ void get_signature(char* password, char* salt, hashdata_t* hash)
     strcpy(result, password);
     strcat(result, salt);
     get_data_sha(result, *hash, PASSWORD_LEN + SALT_LEN, SHA256_HASH_SIZE);
-    
 }
 
 /*
@@ -93,12 +92,29 @@ void get_signature(char* password, char* salt, hashdata_t* hash)
  */
 void register_user(char* username, char* password, char* salt)
 {
-    char result[USERNAME_LEN+SHA256_HASH_SIZE + 1];
+    // Generate Hash
     hashdata_t hash;
     get_signature(password, salt, &hash);
-    strcpy(result, username);
-    strncat(result, hash, SHA256_HASH_SIZE);
-    write(clientfd, result, sizeof(char)*(USERNAME_LEN+SHA256_HASH_SIZE));
+
+    // Initialize Header
+    RequestHeader_t rh;
+
+    // We do all this piss to ensure theres a null-terminating character
+    strncpy(rh.username, username, USERNAME_LEN);
+    rh.username[sizeof(rh.username) - 1] = '\0';
+
+    memcpy(rh.salted_and_hashed, hash, SHA256_HASH_SIZE);
+
+    // Length is set to 0 because this tells the server that we are creating a new user
+    rh.length = 0;
+
+    // Initialie Request
+    Request_t r = {
+        .header = rh,
+    };
+
+    // Send Request Byte Array to Server
+    send(clientfd, (void*)&r, sizeof(Request_t), 0);
 }
 
 /*
