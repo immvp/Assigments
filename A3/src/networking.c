@@ -164,11 +164,13 @@ void get_file(char* username, char* password, char* salt, char* to_get)
     FILE* file = fopen(to_get, "wb");
 
     // fill the file up with the requested data
-    Response_t rst;
-    recv(clientfd, &rst, MAX_MSG_LEN, 0);
+    // Response_t rst;
+    char bufr[MAX_MSG_LEN];
+    recv(clientfd, bufr, MAX_MSG_LEN, 0);
+    fwrite(&bufr, MAX_MSG_LEN, 1, file);
 
-    printf("[Bc: %d]\n[Bn: %d]\n[l: %d]\n[s: %d]\n[Bh: %s]\n[Th: %s]\n", 
-        rst.blockcount, rst.blocknumber, rst.length, rst.status, rst.blockhash, rst.totalhash);
+    // printf("[Bc: %d]\n[Bn: %d]\n[l: %d]\n[s: %d]\n[Bh: %s]\n[Th: %s]\n", 
+    //     rst.blockcount, rst.blocknumber, rst.length, rst.status, rst.blockhash, rst.totalhash);
 
     fclose(file);
 }
