@@ -109,9 +109,8 @@ void register_user(char* username, char* password, char* salt)
     rh.length = 0;
 
     // Initialie Request
-    Request_t r = {
-        .header = rh,
-    };
+    Request_t r;
+    r.header = rh;
 
     // Send Request Byte Array to Server
     send(clientfd, (void*)&r, sizeof(Request_t), 0);
@@ -124,8 +123,37 @@ void register_user(char* username, char* password, char* salt)
  */
 void get_file(char* username, char* password, char* salt, char* to_get)
 {
-    // Your code here. This function has been added as a guide, but feel free 
-    // to add more, or work in other parts of the code
+    // Get signature
+    hashdata_t hash;
+    get_signature(password, salt, &hash);
+
+    // Create Header
+    RequestHeader_t rt;
+
+    // set username in header
+    strncpy(rt.username, username, USERNAME_LEN);
+    rt.username[sizeof(rt.username) - 1] = '\0';
+
+    // set hash
+    memcpy(rt.salted_and_hashed, hash, SHA256_HASH_SIZE);
+
+    // length of the path to file
+    rt.length = strlen(to_get);
+
+    Request_t r;
+    r.header = rt;
+    strcpy(r.payload, to_get);
+
+    // Create file, and open it
+    FILE* file = fopen(to_get, "wb");
+
+    
+    char bufr[MAX_MSG_LEN];
+    recv(clientfd, bufr, MAX_MSG_LEN, 0);
+
+    fwrite(bufr, MAX_MSG_LEN, 1, file);
+
+    fclose(file);
 }
 
 int main(int argc, char **argv)
