@@ -23,6 +23,15 @@ int clientfd;
 
 int c;
 
+typedef struct Response {
+    uint32_t length;
+    uint32_t status;
+    uint32_t blocknumber;
+    uint32_t blockcount;
+    hashdata_t blockhash;
+    hashdata_t totalhash;
+} Response_t;
+
 /*
  * Gets a sha256 hash of specified data, sourcedata. The hash itself is
  * placed into the given variable 'hash'. Any size can be created, but a
@@ -138,20 +147,28 @@ void get_file(char* username, char* password, char* salt, char* to_get)
     memcpy(rt.salted_and_hashed, hash, SHA256_HASH_SIZE);
 
     // length of the path to file
-    rt.length = strlen(to_get);
+    // htonl converts a uint32 to big endian aka network byte order
+    rt.length = htonl(strlen(to_get));
 
     Request_t r;
     r.header = rt;
     strcpy(r.payload, to_get);
 
+    // request data
+    send(clientfd, (void * )&r, sizeof(Request_t), 0);
+    fprintf(stdout, "Requesting file...\n");
+
+    // CODE HERFRA OG NED ER LORT I DENNE FUNKTION
+
     // Create file, and open it
     FILE* file = fopen(to_get, "wb");
 
-    
-    char bufr[MAX_MSG_LEN];
-    recv(clientfd, bufr, MAX_MSG_LEN, 0);
+    // fill the file up with the requested data
+    Response_t rst;
+    recv(clientfd, &rst, MAX_MSG_LEN, 0);
 
-    fwrite(bufr, MAX_MSG_LEN, 1, file);
+    printf("[Bc: %d]\n[Bn: %d]\n[l: %d]\n[s: %d]\n[Bh: %s]\n[Th: %s]\n", 
+        rst.blockcount, rst.blocknumber, rst.length, rst.status, rst.blockhash, rst.totalhash);
 
     fclose(file);
 }
@@ -251,7 +268,6 @@ int main(int argc, char **argv)
     strcat(usernameAndSalt," ");
     strcat(usernameAndSalt,user_salt);
     strcat(usernameAndSalt,"\n");
-    printf("%s !!!",usernameAndSalt);
     // Creating/opening a txt file and writing the username and salt to it
     if ((fp_us = fopen("userInformations.txt","a+")) == NULL) {
         fp_us = fopen("userInformations.txt", "w+");
@@ -283,10 +299,10 @@ int main(int argc, char **argv)
         // Retrieve the larger file, that requires support for blocked messages. As
         // handed out, this line will run every time this client starts, and so 
         // should be removed if user interaction is added
-        get_file(username, password, user_salt, "hamlet.txt");
+        // get_file(username, password, user_salt, "hamlet.txt");
     }
     else {
-        fprintf(stdout, "didnt work");
+        fprintf(stdout, "didnt work\n");
     }
 
     exit(EXIT_SUCCESS);
