@@ -32,6 +32,11 @@
         hashdata_t totalhash;
     } Response_t;
 
+    typedef struct hamlet {
+        uint32_t length;
+        char payload[MAX_PAYLOAD];
+    } hamlet_t;
+
     /*
     * Gets a sha256 hash of specified data, sourcedata. The hash itself is
     * placed into the given variable 'hash'. Any size can be created, but a
@@ -100,6 +105,7 @@
     */
     void register_user(char* username, char* password, char* salt)
     {
+        if ((clientfd = compsys_helper_open_clientfd(server_ip, server_port)) >= 0) {
         // Generate Hash
         hashdata_t hash = {0};
         get_signature(password, salt, &hash);
@@ -124,6 +130,8 @@
         unsigned char* bytearray[sizeof(Request_t)];
         memcpy(bytearray, &r, sizeof(Request_t));
         send(clientfd, bytearray, sizeof(bytearray), 0);
+        close(clientfd);
+        }
     }
 
     /*
@@ -133,6 +141,7 @@
     */
     void get_file(char* username, char* password, char* salt, char* to_get)
     {
+        if ((clientfd = compsys_helper_open_clientfd(server_ip, server_port)) >= 0) {
         // Get signature
         hashdata_t hash = {0};
         get_signature(password, salt, &hash);
@@ -160,18 +169,67 @@
         send(clientfd, bytearray, sizeof(bytearray), 0);
 
         // CODE HERFRA OG NED ER LORT I DENNE FUNKTION
+        uint32_t counter = 1;
 
         // Create file, and open it
         FILE* file = fopen(to_get, "wb");
-        char bufr[MAX_MSG_LEN];
-        recv(clientfd, bufr, MAX_MSG_LEN, 0);
 
-        fwrite(&bufr, MAX_MSG_LEN, 1, file);
+        unsigned char* bufr[MAX_MSG_LEN];
+        recv(clientfd, bufr, RESPONSE_HEADER_LEN, 0);
+        Response_t rst;
+        memcpy(&rst, bufr, sizeof(bufr));
+        rst.status = ntohl(rst.status);
+        rst.length = ntohl(rst.length);
+        rst.blocknumber = ntohl(rst.blocknumber);
+        rst.blockcount = ntohl(rst.blockcount);
+        char* payload[MAX_PAYLOAD];
+        recv(clientfd, payload, rst.length, 0);
+        if (rst.blockcount == 1) {
+            fwrite(&payload, rst.length, 1, file);
+        }
 
-        // printf("[Bc: %d]\n[Bn: %d]\n[l: %d]\n[s: %d]\n[Bh: %s]\n[Th: %s]\n", 
-        //     rst.blockcount, rst.blocknumber, rst.length, rst.status, rst.blockhash, rst.totalhash);
+        if (rst.blockcount > 1) {
+            hamlet_t haml[rst.blockcount];
+            hamlet_t hamlinsert;
+            hamlinsert.length = rst.length;
+            memcpy(hamlinsert.payload, payload, sizeof(payload));
+            haml[rst.blocknumber] = hamlinsert;
+            
+            while (1) {
+                unsigned char* bufr[MAX_MSG_LEN];
+                recv(clientfd, bufr, RESPONSE_HEADER_LEN, 0);
+                Response_t rst;
+                memcpy(&rst, bufr, sizeof(bufr));
+                rst.status = ntohl(rst.status);
+                rst.length = ntohl(rst.length);
+                rst.blocknumber = ntohl(rst.blocknumber);
+                rst.blockcount = ntohl(rst.blockcount);
+                char* payload[MAX_PAYLOAD];
+                recv(clientfd, payload, rst.length, 0);
+                hamlet_t hamlinsert;
+                hamlinsert.length = rst.length;
+                memcpy(hamlinsert.payload, payload, sizeof(payload));
+                haml[rst.blocknumber] = hamlinsert;
+                printf("[Bc: %d]\n[Bn: %d]\n[l: %d]\n[s: %d]\n[Bh: %s]\n[Th: %s]\n", 
+                rst.blockcount, rst.blocknumber, rst.length, rst.status, rst.blockhash, rst.totalhash);
+                if (counter == rst.blockcount-1) {
+                    for (uint32_t i = 0; i < rst.blockcount; i++)
+                    {
+                        fwrite(&haml[i].payload, haml[i].length, 1, file);
+                    }
+                    break;
+                }
+                counter++;
+            }    
+        }
+
+            
+
+
 
         fclose(file);
+        close(clientfd);
+        }
     }
 
     int main(int argc, char **argv)
@@ -279,8 +337,6 @@
         }
         fclose(fp_us);
 
-        // creating connection
-        if ((clientfd = compsys_helper_open_clientfd(server_ip, server_port)) >= 0) {
             // The following function calls have been added as a structure to a 
             // potential solution demonstrating the core functionality. Feel free to 
             // add, remove or otherwise edit. Note that if you are creating a system 
@@ -300,11 +356,6 @@
             // Retrieve the larger file, that requires support for blocked messages. As
             // handed out, this line will run every time this client starts, and so 
             // should be removed if user interaction is added
-            // get_file(username, password, user_salt, "hamlet.txt");
-        }
-        else {
-            fprintf(stdout, "didnt work\n");
-        }
-
+            get_file(username, password, user_salt, "hamlet.txt");
         exit(EXIT_SUCCESS);
     }
