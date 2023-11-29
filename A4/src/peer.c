@@ -333,8 +333,45 @@ void send_message(PeerAddress_t peer_address, int command, char* request_body)
     {
         if (command == COMMAND_REGISTER)
         {
-            // Your code here. This code has been added as a guide, but feel 
-            // free to add more, or work in other parts of the code
+            pthread_mutex_lock(&network_mutex);
+            peer_count = reply_length/20;
+             
+            network = realloc(network, sizeof(PeerAddress_t*) * peer_count + 1);
+
+            for (uint32_t i = 0; i < peer_count; i++)
+            {
+                uint32_t reply_port_int = 0;
+                memcpy(&reply_port_int, &reply_body[i*20]+16, 4);
+                reply_port_int = ntohl(reply_port_int);
+                char reply_port[PORT_LEN];
+                sprintf(reply_port, "%u", reply_port_int);
+                
+
+                char reply_ip[IP_LEN];
+                memcpy(reply_ip, &reply_body[i*20], 16);
+
+                printf("Reply IP: %s\nReply Port: %s\n", reply_ip, reply_port);
+                printf("my IP: %s\nmy Port: %s\n", &my_address->ip[0], &my_address->port[0]);
+                printf("%d\n", memcmp(&reply_port, my_address->port, 4));
+                printf("%d\n", memcmp(&reply_ip, my_address->ip, 16));
+                if (memcmp(&reply_port, my_address->port, 4) != 0 || strcmp(reply_ip, my_address->ip) != 0) {
+                    // memcpy(network[i+1], &reply_body[i*20], 20);
+                    PeerAddress_t tmp;
+                    memcpy(tmp.ip, &reply_ip, 16);
+                    memcpy(tmp.port, &reply_port, PORT_LEN);
+                    network[i+1] = malloc(sizeof(PeerAddress_t*));
+                    memcpy(network[i+1], &tmp, sizeof(tmp));
+                }
+            }
+            
+            for (uint32_t i = 0; i < peer_count; i++)
+            {
+                fprintf(stdout, "s\n");
+                printf("%s\n", network[i]->ip);
+                printf("%s\n", network[i]->port);
+            }
+            
+            pthread_mutex_unlock(&network_mutex);
         }
     } 
     else
@@ -384,8 +421,7 @@ void* client_thread(void* thread_args)
  */
 void handle_register(int connfd, char* client_ip, int client_port_int)
 {
-    // Your code here. This function has been added as a guide, but feel free 
-    // to add more, or work in other parts of the code
+
 }
 
 /*
