@@ -11,7 +11,7 @@ struct memory *memory_create()
 {
   return calloc(sizeof(struct memory), 1);
 }
-
+ 
 void memory_delete(struct memory *mem)
 {
   for (int j = 0; j < 0x10000; ++j)
