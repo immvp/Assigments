@@ -77,15 +77,16 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
         // ins->immediate = (memory_rd_w(mem, addr) & 0x7FF00000) | ((memory_rd_w(mem, addr) >> 19) & 0x7FF);
         break;
     case opcode_S:
-        // Finds the first bit. Loops through index 11 to 31 and sets it to 0 and then uses OR to flip it to the firstBit value.
+        // Finds the first bit. Loops through index 11 to 31 and flips it.
         // inst[31]
+        unsigned int testBit = 0xFFFFFFFF;
         unsigned int firstBit = (unsigned)memory_rd_w(mem, addr) >> 31; // første bit til sidste plads
-        unsigned int retval = memory_rd_w(mem, addr);
+        unsigned int retval = 0;
         for (int i = 0; i < 21; i++)
         {
-            retval &= ~(1 << (11 + i));
             retval |= (firstBit << (11 + i));
         }
+
         // inst[30:25]
         // extract index 31 to 25
         unsigned int extract = memory_rd_w(mem, addr) >> 25;
@@ -96,25 +97,59 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
 
         // inst[11:8]
         // extract index 11 to 8
-        extract = memory_rd_w(mem, addr) >> 8;
-        // flip index 31:11 to 0, we dont care about it
-        for (int i = 0; i < 21; i++)
-        {
-            extract &= ~(1 << (11 + i));
-        }
-        // insert extracted value on index 11 to 8
-        retval |= (extract << 8);
+        extract = memory_rd_w(mem, addr) << 20;
+        extract = memory_rd_w(mem, addr) >> 28;
+        // insert extracted value on 4 to 1
+        retval |= (extract << 1);
 
         //inst[7]
         // extract index 7
-        extract = memory_rd_w(mem, addr) & (1 << 7);
-        
+        extract = testBit & (1 << 7);
+        // move it to index 0
+        extract = extract >> 7;
         // insert extracted value on index 0
         retval |= (extract);
+
+        // insert value into our struct
         ins->immediate = retval;
-        printf("%d or %u", ins->immediate, retval);
         break;
     case opcode_B:
+        // Finds the first bit. Loops through index 12 to 31 and flips it.
+        // inst[31]
+        unsigned int testBit = 0xFFFFFFFF;
+        unsigned int firstBit = (unsigned)testBit >> 31; // første bit til sidste plads
+        unsigned int retval = 0;
+        for (int i = 0; i < 20; i++)
+        {
+            retval |= (firstBit << (12 + i));
+        }
+
+        //inst[7]
+        // extract index 7
+        extract = testBit & (1 << 7);
+        // move it to index 11
+        extract = extract << 4;
+        // insert extracted value on index 11
+        retval |= (extract);
+
+        // inst[30:25]
+        // extract index 31 to 25
+        unsigned int extract = testBit >> 25;
+        // flip index 31 to 0, we dont care about it
+        extract &= ~(1 << 6);
+        // insert extracted value on index 10 to 5
+        retval |= (extract << 5);
+
+        // inst[11:8]
+        // extract index 11 to 8
+        extract = testBit << 20;
+        extract = testBit >> 28;
+        // insert extracted value on 4 to 1
+        retval |= (extract << 1);
+
+
+        // insert value into our struct
+        ins->immediate = retval;
         break;
     case opcode_J:
         break;
