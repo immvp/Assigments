@@ -64,6 +64,10 @@ void funct7(struct instruction *ins, struct memory *mem, int addr) {
 }
 
 void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) {
+    unsigned int testBit = 0xFFFFFFFF;
+    unsigned int firstBit;
+    unsigned int retval = 0;
+    unsigned int extract;
     switch (ins->opcode)
     {
     case opcode_I_1:
@@ -79,9 +83,9 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
     case opcode_S:
         // Finds the first bit. Loops through index 11 to 31 and flips it.
         // inst[31]
-        unsigned int testBit = 0xFFFFFFFF;
-        unsigned int firstBit = (unsigned)memory_rd_w(mem, addr) >> 31; // første bit til sidste plads
-        unsigned int retval = 0;
+        testBit = 0xFFFFFFFF;
+        firstBit = (unsigned)memory_rd_w(mem, addr) >> 31; // første bit til sidste plads
+        retval = 0;
         for (int i = 0; i < 21; i++)
         {
             retval |= (firstBit << (11 + i));
@@ -89,7 +93,7 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
 
         // inst[30:25]
         // extract index 31 to 25
-        unsigned int extract = memory_rd_w(mem, addr) >> 25;
+        extract = memory_rd_w(mem, addr) >> 25;
         // flip index 31 to 0, we dont care about it
         extract &= ~(1 << 6);
         // insert extracted value on index 10 to 5
@@ -116,9 +120,9 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
     case opcode_B:
         // Finds the first bit. Loops through index 12 to 31 and flips it.
         // inst[31]
-        unsigned int testBit = 0xFFFFFFFF;
-        unsigned int firstBit = (unsigned)testBit >> 31; // første bit til sidste plads
-        unsigned int retval = 0;
+        testBit = 0xFFFFFFFF;
+        firstBit = (unsigned)testBit >> 31; // første bit til sidste plads
+        retval = 0;
         for (int i = 0; i < 20; i++)
         {
             retval |= (firstBit << (12 + i));
@@ -134,7 +138,7 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
 
         // inst[30:25]
         // extract index 31 to 25
-        unsigned int extract = testBit >> 25;
+        extract = testBit >> 25;
         // flip index 31 to 0, we dont care about it
         extract &= ~(1 << 6);
         // insert extracted value on index 10 to 5
@@ -147,9 +151,11 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
         // insert extracted value on 4 to 1
         retval |= (extract << 1);
 
-
+        // insert value 0 on index 0
+        retval &= ~(1);
         // insert value into our struct
         ins->immediate = retval;
+        printBinary(ins->immediate);
         break;
     case opcode_J:
         break;
@@ -166,7 +172,7 @@ void calculate_immediate(struct instruction *ins, struct memory *mem, int addr) 
 long int simulate(struct memory *mem, struct assembly *as, int start_addr, FILE *log_file)
 {
     struct instruction ins;
-    ins.opcode = opcode_S;
+    ins.opcode = opcode_B;
     calculate_immediate(&ins, mem, start_addr);
     printf("\n");
     // switch (memory_rd_w(mem, start_addr) & 0x7F) // Read Opcode (6 bits from right to left)
