@@ -246,6 +246,8 @@ long int simulate(struct memory *mem, struct assembly *as, int start_addr, FILE 
     int PC = start_addr;
     while (1)
     {
+        int temprsi;
+        printf("\n%d\n", PC);
         ins.opcode = memory_rd_w(mem, PC) & 0x7F;
         calculate_immediate(&ins, mem, PC);
         rs1(&ins, mem, PC);
@@ -591,9 +593,10 @@ long int simulate(struct memory *mem, struct assembly *as, int start_addr, FILE 
             switch (ins.funct3)
             {
             case 0x0:
+                temprsi = ins.rs1;
                 insertdata = PC + 4;
+                PC = temprsi + ins.immediate;
                 *ins.rd = insertdata;
-                PC = ins.rs1 + ins.immediate;
                 break;
 
             default:
