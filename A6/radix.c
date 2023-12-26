@@ -1,5 +1,4 @@
 #include "lib.h"
-#include <stddef.h>
 
 // Nodes in a radix tree.
 struct node;
@@ -190,3 +189,4 @@ void main(int argc, char* argv[]) {
   close_file(out_file);
   release_tree(tree);
 }
+

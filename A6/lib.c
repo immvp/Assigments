@@ -1,5 +1,4 @@
 #include "lib.h"
-#include <stddef.h>
 
 asm("  .globl _start");
 asm("_start:");
