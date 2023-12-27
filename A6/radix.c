@@ -36,10 +36,6 @@ void add_number(int number) {
     if (nptr == NULL) {
       // subtree does not exist. create a leaf:
       nptr = allocate(sizeof(struct node));
-        // char buffer[32];
-        // uns_to_str(buffer, bit_pos);
-        // print_string(buffer);
-        // print_string("\n");
       *parent = nptr;
       nptr->bit_pos = 1;
       nptr->number = number;
