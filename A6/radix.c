@@ -65,9 +65,6 @@ void add_number(int number) {
       return;
     }
 
-    if (nptr->number == NULL) {
-      print_string("HELLO\n");
-    }
     if (bit_pos > nptr->bit_pos) {
       int mask = bit_range(bit_pos, nptr->bit_pos);
       int diff = mask & (number ^ nptr->number);
