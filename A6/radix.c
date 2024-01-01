@@ -1,7 +1,5 @@
 #include "lib.h"
 
-// Nodes in a radix tree.
-struct node;
 struct leaf { int count_zero; int count_one; };
 struct interior { struct node* zero; struct node* one; };
 struct node {
@@ -9,6 +7,26 @@ struct node {
   int number;
   union { struct leaf leaf; struct interior interior; };
 };
+
+// #define POOL_SIZE 21
+// struct node* memory_pool;
+// int cap = POOL_SIZE;
+// int pool_index = 0;
+
+// void memory_pool_init(int cap) {
+//   memory_pool = allocate(sizeof(struct node) * cap);
+// }
+
+// struct node* allocate_node() {
+//   if (pool_index < cap) {
+//     return &memory_pool[pool_index++];
+//   } else {
+//     cap *= 2;
+//     print_string("\nHELLO\n");
+//     memory_pool_init(cap);
+//     return &memory_pool[pool_index++];
+//   }
+// }
 
 struct node* tree = NULL;
 
@@ -26,22 +44,30 @@ inline int not_higher_bits(int bit_pos) { return ~higher_bits(bit_pos); }
 // range including high pos, but excluding low pos
 inline int bit_range(int bit_pos_high, int bit_pos_low) { return (higher_bits(bit_pos_low) & not_higher_bits(bit_pos_high)); }
 
+inline struct node* create_leaf(int number) {
+      struct node* nptr = allocate(sizeof(struct node));
+      nptr->bit_pos = 1;
+      nptr->number = number;
+      nptr->leaf.count_zero = (number & 1) == 0;
+      nptr->leaf.count_one = (number & 1);
+      return nptr;
+}
+
 
 // Add a number to the radix tree
-inline void add_number(int number) {
+void add_number(int number) {
   struct node** parent = &tree;
   // Tree may branch on each bit, starting from the most significant.
   for (int bit_pos = MAX_BITS; bit_pos >= 1; bit_pos >>= 1) {
     struct node* nptr = *parent;
     if (nptr == NULL) {
       // subtree does not exist. create a leaf:
-      nptr = allocate(sizeof(struct node));
-      *parent = nptr;
-      nptr->bit_pos = 1;
-      nptr->number = number;
-      nptr->leaf.count_zero = (number & 1) == 0;
-      nptr->leaf.count_one = (number & 1) == 1;
+      *parent = create_leaf(number);
       return;
+    }
+
+    if (nptr->number == NULL) {
+      print_string("HELLO\n");
     }
     if (bit_pos > nptr->bit_pos) {
       int mask = bit_range(bit_pos, nptr->bit_pos);
@@ -53,19 +79,21 @@ inline void add_number(int number) {
         while ((bit_pos & diff) == 0) { bit_pos >>= 1; };
         // inject an interior node for branching at bit_pos, above the earlier found subtree
         struct node* nptr2 = allocate(sizeof(struct node));
-        *parent = nptr2;
         nptr2->bit_pos = bit_pos;
         nptr2->number = number;
+        *parent = nptr2;
         if ((number & bit_pos) == 0) {
           nptr2->interior.one = nptr;
-          nptr2->interior.zero = NULL;
-          parent = & nptr2->interior.zero;
+          // Originally, the code set this to NULL and did another loop which would cause it to create
+          // a leaf on next loop. My optimization removes the need for another loop:
+          nptr2->interior.zero = create_leaf(number);
         } else {
           nptr2->interior.zero = nptr;
-          nptr2->interior.one = NULL;
-          parent = & nptr2->interior.one;
+          // Originally, the code set this to NULL and did another loop which would cause it to create
+          // a leaf on next loop. My optimization removes the need for another loop:
+          nptr2->interior.one = create_leaf(number);
         }
-        continue;
+        return; // changed from 'continue'
       }
       // we may use the found node
       bit_pos = nptr->bit_pos;
@@ -79,12 +107,69 @@ inline void add_number(int number) {
     }
     else {
       // add number at leaf
-      if (number & 1)
+      if (number & 1) {
         nptr->leaf.count_one++;
-      else
+      }
+      else {
         nptr->leaf.count_zero++;
+      }
     }
   }
+}
+
+
+// Function to print every value in the radix tree
+void print_radix_tree_values(struct node* tree) {
+    if (tree) {
+      if (tree->bit_pos == 1) {
+            char bufr[100];
+            uns_to_str(bufr, tree->number);
+            print_string("Value: ");
+            print_string(bufr);
+            print_string(" | ");
+            print_string("bit_pos: ");
+            uns_to_str(bufr, tree->bit_pos);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("leaf.count_zero: ");
+            uns_to_str(bufr, tree->leaf.count_zero);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("leaf.count_one: ");
+            uns_to_str(bufr, tree->leaf.count_one);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("Address: ");
+            uns_to_str(bufr, tree);
+            print_string(bufr);
+            print_string("\n");
+        }
+          else {
+                        char bufr[100];
+            uns_to_str(bufr, tree->number);
+            print_string("Value: ");
+            print_string(bufr);
+            print_string(" | ");
+            print_string("bit_pos: ");
+            uns_to_str(bufr, tree->bit_pos);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("leaf.count_zero: ");
+            uns_to_str(bufr, tree->leaf.count_zero);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("leaf.count_one: ");
+            uns_to_str(bufr, tree->leaf.count_one);
+            print_string(bufr);
+            print_string(" | ");
+            print_string("Address: ");
+            uns_to_str(bufr, tree);
+            print_string(bufr);
+            print_string("\n");
+            print_radix_tree_values(tree->interior.zero);
+            print_radix_tree_values(tree->interior.one);
+          }
+    }
 }
 
 // Take out members of subtree. Fill into 'buffer' until we reach 'end' of it
@@ -123,7 +208,7 @@ int* take_numbers_2(struct node** parent, int* buffer, int* end) {
 
 // take 'max_nums' numbers from the tree and put them in 'buffer'
 // return the number of numbers taken.
-inline int take_numbers(int* buffer, int max_nums) {
+int take_numbers(int* buffer, int max_nums) {
   return take_numbers_2(& tree, buffer, buffer + max_nums) - buffer;
 }
 
@@ -153,6 +238,7 @@ void main(int argc, char* argv[]) {
     print_string("Could not open output file\n");
   }
   // process numbers
+  // memory_pool_init(cap);
   while (1) {
     int numbers[100];
     int out_numbers[100];
@@ -164,6 +250,7 @@ void main(int argc, char* argv[]) {
       if (numbers[n] < 0) {
         // negative number -N means take(N):
         int limit = -numbers[n];
+      // print_radix_tree_values(tree);
         while (limit > 0) {
           // take, then output up till 100 numbers at a time
           int take_max = limit < 100 ? limit : 100;
@@ -179,6 +266,8 @@ void main(int argc, char* argv[]) {
             break;
         }
       } else {
+        // print_string("______________________\n");
+        // print_radix_tree_values(tree);
         // a positive number is just added
         add_number(numbers[n]);
       }
@@ -189,4 +278,3 @@ void main(int argc, char* argv[]) {
   close_file(out_file);
   release_tree(tree);
 }
-
