@@ -53,7 +53,6 @@ inline struct node* create_leaf(int number) {
       return nptr;
 }
 
-
 // Add a number to the radix tree
 void add_number(int number) {
   struct node** parent = &tree;
